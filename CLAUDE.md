@@ -13,7 +13,12 @@ pnpm start      # Start production server
 pnpm lint       # Run ESLint
 ```
 
-Use `pnpm` — not `npm` or `yarn`. There is no test script configured.
+Use `pnpm` — not `npm` or `yarn`.
+
+```bash
+pnpm test         # Run tests once
+pnpm test:watch   # Run tests in watch mode
+```
 
 ## Architecture
 
