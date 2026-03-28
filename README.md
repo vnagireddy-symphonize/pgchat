@@ -10,6 +10,7 @@ A conversational data analysis interface for PostgreSQL. Ask questions in plain 
 - **Live tool call visibility** — see exactly which database tools were called and what they returned
 - **Markdown responses** — answers rendered with full formatting (tables, code blocks, lists)
 - **MCP-native** — connects to any MCP server over stdio or HTTP; PostgreSQL support via `mcp-postgres`
+- **Feature toggles** — enable/disable MCP tools, system prompt, markdown rendering, and suggestions via a settings panel; persisted to localStorage; overridable via env vars
 - **Dark mode** — full light/dark theme support
 
 ## Requirements
@@ -81,11 +82,22 @@ Database connectivity is provided by [`mcp-postgres`](https://www.npmjs.com/pack
 | Database bridge | `mcp-postgres` (stdio) |
 | Markdown | `react-markdown` + `@tailwindcss/typography` |
 
+## Feature Toggles
+
+All flags default to `true` in `features.json`. Users can toggle them at runtime via the ⚙️ settings panel in the UI (persisted to `localStorage`). Operators can lock server-side flags regardless of user settings using env vars:
+
+```env
+FEATURE_MCP_TOOLS=false       # Disable MCP tool calling (plain Gemini only)
+FEATURE_SYSTEM_PROMPT=false   # Disable the data analyst system prompt
+```
+
 ## Commands
 
 ```bash
-pnpm dev      # Start dev server
-pnpm build    # Production build
-pnpm start    # Start production server
-pnpm lint     # Run ESLint
+pnpm dev          # Start dev server
+pnpm build        # Production build
+pnpm start        # Start production server
+pnpm lint         # Run ESLint
+pnpm test         # Run tests
+pnpm test:watch   # Run tests in watch mode
 ```
