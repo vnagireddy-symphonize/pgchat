@@ -48,4 +48,6 @@ Common types: `feat`, `fix`, `docs`, `refactor`, `chore`. Use `pnpm build` to ve
 
 After every commit, push to origin: `git push origin main`
 
+After completing any task that adds, changes, or removes user-facing features, commands, configuration, or environment variables, update `README.md` to reflect those changes before committing.
+
 Use `git tag` to bookmark milestones (e.g. `v0.3-data-analysis`) instead of long-lived branches.
