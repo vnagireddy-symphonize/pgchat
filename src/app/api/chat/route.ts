@@ -6,7 +6,19 @@ import { initMCPClients, getAllFunctionDeclarations, callMCPTool } from '@/lib/m
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! })
 const MODEL = 'gemini-2.0-flash'
-const MAX_ITERATIONS = 10
+const MAX_ITERATIONS = 20
+
+const SYSTEM_PROMPT = `You are an expert data analyst with direct access to a PostgreSQL database.
+
+When the user asks a question:
+1. Start by exploring the schema — list tables and describe relevant ones before querying.
+2. Write precise SQL queries to retrieve the data needed.
+3. Analyse the results: identify trends, outliers, distributions, aggregates, and correlations.
+4. Provide a clear, structured answer with statistical insights — don't just echo raw data.
+5. If a question is ambiguous, make a reasonable assumption and state it.
+6. When relevant, suggest follow-up analyses the user might find useful.
+
+Always reason step-by-step before writing SQL. Prefer readable, well-commented queries.`
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -33,7 +45,8 @@ export async function POST(request: NextRequest) {
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
-      const enqueue = (event: unknown) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'))
+      const enqueue = (event: unknown) =>
+        controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'))
 
       try {
         const contents: Content[] = buildContents(messages)
@@ -43,7 +56,10 @@ export async function POST(request: NextRequest) {
           const response = await ai.models.generateContent({
             model: MODEL,
             contents,
-            config: tools ? { tools } : undefined,
+            config: {
+              systemInstruction: SYSTEM_PROMPT,
+              ...(tools ? { tools } : {}),
+            },
           })
 
           const functionCalls = response.functionCalls ?? []
@@ -53,13 +69,11 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // Append model's function-call turn
           contents.push({
             role: 'model',
             parts: functionCalls.map((fc) => ({ functionCall: fc })),
           })
 
-          // Execute each tool call and collect results
           const responseParts = await Promise.all(
             functionCalls.map(async (fc) => {
               const args = (fc.args ?? {}) as Record<string, unknown>
@@ -77,7 +91,6 @@ export async function POST(request: NextRequest) {
             })
           )
 
-          // Append function-response turn
           contents.push({ role: 'user', parts: responseParts })
         }
       } catch (err) {

@@ -1,12 +1,13 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { ToolListChangedNotificationSchema, CallToolResultSchema } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
+import { FunctionDeclaration } from '@google/genai'
+import { loadMCPConfig, McpServerConfig } from './config'
+import { mcpToolToFunctionDeclaration, toolToServer } from './schema'
 
 type CallToolResult = z.infer<typeof CallToolResultSchema>
-import { FunctionDeclaration } from '@google/genai'
-import { loadMCPConfig } from './config'
-import { mcpToolToFunctionDeclaration, toolToServer } from './schema'
 
 interface ServerEntry {
   client: Client
@@ -16,26 +17,39 @@ interface ServerEntry {
 const registry = new Map<string, ServerEntry>()
 let initPromise: Promise<void> | null = null
 
-async function connectServer(name: string, url: string, requestInit?: RequestInit) {
+function buildTransport(cfg: McpServerConfig) {
+  if (cfg.transport === 'stdio') {
+    return new StdioClientTransport({
+      command: cfg.command,
+      args: cfg.args,
+      env: cfg.env ? { ...process.env, ...cfg.env } as Record<string, string> : undefined,
+    })
+  }
+  return new StreamableHTTPClientTransport(
+    new URL(cfg.url),
+    { requestInit: cfg.requestInit as RequestInit | undefined }
+  )
+}
+
+async function connectServer(cfg: McpServerConfig) {
   const client = new Client({ name: 'pgchat', version: '1.0.0' })
-  const transport = new StreamableHTTPClientTransport(new URL(url), { requestInit })
+  const transport = buildTransport(cfg)
 
   await client.connect(transport)
   const { tools } = await client.listTools()
 
-  const declarations = tools.map((t) => mcpToolToFunctionDeclaration(t, name))
-  registry.set(name, { client, declarations })
+  const declarations = tools.map((t) => mcpToolToFunctionDeclaration(t, cfg.name))
+  registry.set(cfg.name, { client, declarations })
 
-  // Refresh tool list when the server signals changes
   client.setNotificationHandler(
     ToolListChangedNotificationSchema,
     async () => {
       try {
         const { tools: updated } = await client.listTools()
-        const updatedDeclarations = updated.map((t) => mcpToolToFunctionDeclaration(t, name))
-        registry.set(name, { client, declarations: updatedDeclarations })
+        const updatedDeclarations = updated.map((t) => mcpToolToFunctionDeclaration(t, cfg.name))
+        registry.set(cfg.name, { client, declarations: updatedDeclarations })
       } catch (err) {
-        console.warn(`[mcp] failed to refresh tools for ${name}:`, err)
+        console.warn(`[mcp] failed to refresh tools for ${cfg.name}:`, err)
       }
     }
   )
@@ -48,7 +62,7 @@ export async function initMCPClients(): Promise<void> {
     const { servers } = loadMCPConfig()
     await Promise.allSettled(
       servers.map((s) =>
-        connectServer(s.name, s.url, s.requestInit as RequestInit | undefined).catch((err) => {
+        connectServer(s).catch((err) => {
           console.warn(`[mcp] failed to connect to server "${s.name}":`, err)
         })
       )
@@ -72,7 +86,6 @@ export async function callMCPTool(
   const entry = registry.get(serverName)
   if (!entry) throw new Error(`Server not connected: ${serverName}`)
 
-  // Strip server prefix before calling the actual MCP server
   const toolName = qualifiedName.slice(serverName.length + 2)
   const result = (await entry.client.callTool({ name: toolName, arguments: args })) as CallToolResult
 

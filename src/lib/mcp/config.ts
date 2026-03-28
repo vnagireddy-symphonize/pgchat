@@ -2,8 +2,14 @@ import fs from 'fs'
 import path from 'path'
 import baseConfig from '../../../mcp.config.json'
 
-export interface McpServerConfig {
+export type McpTransport = 'streamable-http' | 'stdio'
+
+interface BaseServerConfig {
   name: string
+  transport: McpTransport
+}
+
+interface StreamableHttpServerConfig extends BaseServerConfig {
   transport: 'streamable-http'
   url: string
   requestInit?: {
@@ -11,13 +17,22 @@ export interface McpServerConfig {
   }
 }
 
+interface StdioServerConfig extends BaseServerConfig {
+  transport: 'stdio'
+  command: string
+  args?: string[]
+  env?: Record<string, string>
+}
+
+export type McpServerConfig = StreamableHttpServerConfig | StdioServerConfig
+
 interface McpConfig {
   servers: McpServerConfig[]
 }
 
-function resolveEnvVars(headers: Record<string, string>): Record<string, string> {
+function resolveEnvVars(record: Record<string, string>): Record<string, string> {
   return Object.fromEntries(
-    Object.entries(headers).map(([k, v]) => {
+    Object.entries(record).map(([k, v]) => {
       const match = v.match(/^\$\{(.+)\}$/)
       return [k, match ? (process.env[match[1]] ?? v) : v]
     })
@@ -37,16 +52,26 @@ export function loadMCPConfig(): McpConfig {
   }
 
   return {
-    servers: config.servers.map((s) => ({
-      ...s,
-      requestInit: s.requestInit
-        ? {
-            ...s.requestInit,
-            headers: s.requestInit.headers
-              ? resolveEnvVars(s.requestInit.headers)
-              : undefined,
-          }
-        : undefined,
-    })),
+    servers: config.servers.map((s) => {
+      if (s.transport === 'stdio') {
+        return {
+          ...s,
+          env: s.env ? resolveEnvVars(s.env) : undefined,
+        } as StdioServerConfig
+      }
+      // streamable-http
+      const h = s as StreamableHttpServerConfig
+      return {
+        ...h,
+        requestInit: h.requestInit
+          ? {
+              ...h.requestInit,
+              headers: h.requestInit.headers
+                ? resolveEnvVars(h.requestInit.headers)
+                : undefined,
+            }
+          : undefined,
+      }
+    }),
   }
 }
