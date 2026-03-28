@@ -41,4 +41,6 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 
 Common types: `feat`, `fix`, `docs`, `refactor`, `chore`. Use `pnpm build` to verify the build passes before committing.
 
+After every commit, push to origin: `git push origin main`
+
 Use `git tag` to bookmark milestones (e.g. `v0.3-data-analysis`) instead of long-lived branches.
