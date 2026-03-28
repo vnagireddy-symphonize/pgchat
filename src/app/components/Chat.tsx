@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Markdown from 'react-markdown'
 
 type Role = 'user' | 'assistant'
 
@@ -82,7 +83,13 @@ export default function Chat() {
                       : 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100 rounded-bl-sm'
                   }`}
                 >
-                  {msg.text}
+                  {msg.role === 'assistant' ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <Markdown>{msg.text}</Markdown>
+                    </div>
+                  ) : (
+                    msg.text
+                  )}
                 </div>
               </li>
             ))}
