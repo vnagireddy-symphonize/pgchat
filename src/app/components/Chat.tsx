@@ -13,23 +13,37 @@ interface Message {
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, loading])
 
-  function send() {
+  async function send() {
     const text = input.trim()
-    if (!text) return
+    if (!text || loading) return
 
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now(), role: 'user', text },
-    ])
+    setMessages((prev) => [...prev, { id: Date.now(), role: 'user', text }])
     setInput('')
-    inputRef.current?.focus()
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      })
+      const { reply } = await res.json()
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now(), role: 'assistant', text: reply },
+      ])
+    } finally {
+      setLoading(false)
+      inputRef.current?.focus()
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -72,6 +86,17 @@ export default function Chat() {
                 </div>
               </li>
             ))}
+            {loading && (
+              <li className="flex justify-start">
+                <div className="rounded-2xl rounded-bl-sm bg-zinc-100 dark:bg-zinc-800 px-4 py-3">
+                  <span className="flex gap-1 items-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce [animation-delay:0ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce [animation-delay:150ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce [animation-delay:300ms]" />
+                  </span>
+                </div>
+              </li>
+            )}
           </ul>
         )}
         <div ref={bottomRef} />
@@ -92,7 +117,7 @@ export default function Chat() {
           />
           <button
             onClick={send}
-            disabled={!input.trim()}
+            disabled={!input.trim() || loading}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 transition-opacity disabled:opacity-30 hover:opacity-80"
             aria-label="Send"
           >
