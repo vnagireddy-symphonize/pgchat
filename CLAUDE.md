@@ -25,4 +25,16 @@ Use `pnpm` — not `npm` or `yarn`. There is no test script configured.
 - ESLint uses flat config (`eslint.config.mjs`) with Next.js core-web-vitals + TypeScript rules.
 - `pnpm-workspace.yaml` is present for potential monorepo expansion.
 
-**No database, API routes, or auth have been added yet** — this is a `create-next-app` starting point.
+## Git
+
+After successfully completing a task, commit all changes using the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+```
+<type>: <short description>
+
+[optional body]
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+```
+
+Common types: `feat`, `fix`, `docs`, `refactor`, `chore`. Use `pnpm build` to verify the build passes before committing.
