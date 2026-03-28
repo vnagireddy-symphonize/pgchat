@@ -2,7 +2,9 @@ export const runtime = 'nodejs'
 
 import { GoogleGenAI, Content, createPartFromFunctionResponse } from '@google/genai'
 import { NextRequest } from 'next/server'
+import { FunctionDeclaration } from '@google/genai'
 import { initMCPClients, getAllFunctionDeclarations, callMCPTool } from '@/lib/mcp/client'
+import { featureDefaults, resolveServerFlags, FeatureFlags } from '@/lib/features'
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! })
 const MODEL = 'gemini-2.0-flash'
@@ -37,10 +39,15 @@ function emit(controller: ReadableStreamDefaultController, event: unknown) {
 }
 
 export async function POST(request: NextRequest) {
-  const { messages } = (await request.json()) as { messages: ChatMessage[] }
+  const body = (await request.json()) as {
+    messages: ChatMessage[]
+    features?: Pick<FeatureFlags, 'mcpTools' | 'systemPrompt'>
+  }
 
-  await initMCPClients()
-  const functionDeclarations = getAllFunctionDeclarations()
+  const serverFlags = resolveServerFlags({
+    mcpTools:     body.features?.mcpTools     ?? featureDefaults.mcpTools,
+    systemPrompt: body.features?.systemPrompt ?? featureDefaults.systemPrompt,
+  })
 
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
@@ -49,7 +56,13 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'))
 
       try {
-        const contents: Content[] = buildContents(messages)
+        let functionDeclarations: FunctionDeclaration[] = []
+        if (serverFlags.mcpTools) {
+          await initMCPClients()
+          functionDeclarations = getAllFunctionDeclarations()
+        }
+
+        const contents: Content[] = buildContents(body.messages)
         const tools = functionDeclarations.length > 0 ? [{ functionDeclarations }] : undefined
 
         for (let i = 0; i < MAX_ITERATIONS; i++) {
@@ -57,7 +70,7 @@ export async function POST(request: NextRequest) {
             model: MODEL,
             contents,
             config: {
-              systemInstruction: SYSTEM_PROMPT,
+              ...(serverFlags.systemPrompt ? { systemInstruction: SYSTEM_PROMPT } : {}),
               ...(tools ? { tools } : {}),
             },
           })

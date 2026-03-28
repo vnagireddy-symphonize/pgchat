@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import ToolCallBadge from './ToolCallBadge'
+import SettingsPanel from './SettingsPanel'
+import { useFeatures } from '@/lib/features/client'
 
 interface ToolCall {
   name: string
@@ -34,8 +36,10 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isPanelOpen, setIsPanelOpen] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const { flags, setFlag } = useFeatures()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -62,6 +66,7 @@ export default function Chat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: updated.map((m) => ({ role: m.role, text: m.text ?? '' })),
+          features: { mcpTools: flags.mcpTools, systemPrompt: flags.systemPrompt },
         }),
       })
 
@@ -145,7 +150,24 @@ export default function Chat() {
           <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 leading-none">pgchat</h1>
           <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">PostgreSQL data analyst</p>
         </div>
+        <div className="ml-auto">
+          <button
+            onClick={() => setIsPanelOpen(true)}
+            aria-label="Settings"
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.4">
+              <circle cx="8" cy="8" r="2" />
+              <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.42 1.42M11.53 11.53l1.42 1.42M3.05 12.95l1.42-1.42M11.53 4.47l1.42-1.42" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       </header>
+
+      {/* Settings panel */}
+      {isPanelOpen && (
+        <SettingsPanel flags={flags} setFlag={setFlag} onClose={() => setIsPanelOpen(false)} />
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
@@ -162,18 +184,20 @@ export default function Chat() {
               <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-200">Ask anything about your data</h2>
               <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-1">Gemini will explore your schema and run SQL to answer</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s.label}
-                  onClick={() => send(s.label)}
-                  className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-left text-sm text-zinc-700 dark:text-zinc-300"
-                >
-                  <span className="text-base shrink-0">{s.icon}</span>
-                  <span className="leading-snug">{s.label}</span>
-                </button>
-              ))}
-            </div>
+            {flags.suggestions && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s.label}
+                    onClick={() => send(s.label)}
+                    className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-left text-sm text-zinc-700 dark:text-zinc-300"
+                  >
+                    <span className="text-base shrink-0">{s.icon}</span>
+                    <span className="leading-snug">{s.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="max-w-2xl mx-auto w-full px-4 py-6 flex flex-col gap-6">
@@ -205,7 +229,10 @@ export default function Chat() {
                       )}
                       {msg.text && (
                         <div className="prose prose-sm dark:prose-invert max-w-none text-zinc-800 dark:text-zinc-200">
-                          <Markdown>{msg.text}</Markdown>
+                          {flags.markdownRendering
+                            ? <Markdown>{msg.text}</Markdown>
+                            : <span className="whitespace-pre-wrap text-sm">{msg.text}</span>
+                          }
                         </div>
                       )}
                     </>

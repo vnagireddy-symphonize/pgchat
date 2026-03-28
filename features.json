@@ -1,0 +1,6 @@
+{
+  "mcpTools":          true,
+  "systemPrompt":      true,
+  "markdownRendering": true,
+  "suggestions":       true
+}
