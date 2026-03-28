@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# pgchat
 
-## Getting Started
+A conversational data analysis interface for PostgreSQL. Ask questions in plain English — pgchat connects to your database via an MCP server, runs SQL, and returns structured analysis powered by Gemini.
 
-First, run the development server:
+## Features
+
+- **Natural language querying** — describe what you want to know; Gemini writes the SQL
+- **Deep statistical analysis** — trends, distributions, outliers, correlations, aggregations
+- **Agentic tool-calling loop** — Gemini autonomously explores schema, iterates on queries, and synthesises results
+- **Live tool call visibility** — see exactly which database tools were called and what they returned
+- **Markdown responses** — answers rendered with full formatting (tables, code blocks, lists)
+- **MCP-native** — connects to any MCP server over stdio or HTTP; PostgreSQL support via `mcp-postgres`
+- **Dark mode** — full light/dark theme support
+
+## Requirements
+
+- Node.js 18+
+- pnpm
+- A running PostgreSQL database
+- A [Gemini API key](https://aistudio.google.com/app/apikey)
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create `.env.local` in the project root:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+GEMINI_API_KEY=your_gemini_api_key
+DATABASE_URL=postgresql://user:password@host:5432/dbname
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Start the development server:
 
-## Learn More
+```bash
+pnpm dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## MCP Server Configuration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Database connectivity is provided by [`mcp-postgres`](https://www.npmjs.com/package/mcp-postgres), configured in `mcp.config.json`:
 
-## Deploy on Vercel
+```json
+{
+  "servers": [
+    {
+      "name": "postgres",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-postgres@latest"],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}"
+      }
+    }
+  ]
+}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`${DATABASE_URL}` is resolved from the environment at runtime. To add additional MCP servers (HTTP-based), use `transport: "streamable-http"` with a `url` field. For local overrides without touching the committed config, create `mcp.config.local.json` (gitignored).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Example Questions
+
+- *What tables are in this database?*
+- *Show me the distribution of orders by month*
+- *Which customers have the highest lifetime value?*
+- *Are there any anomalies in the transaction data from last quarter?*
+- *What is the average revenue per user, segmented by region?*
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| UI | React 19, Tailwind CSS 4 |
+| LLM | Gemini 2.0 Flash (`@google/genai`) |
+| Tool protocol | MCP (`@modelcontextprotocol/sdk`) |
+| Database bridge | `mcp-postgres` (stdio) |
+| Markdown | `react-markdown` + `@tailwindcss/typography` |
+
+## Commands
+
+```bash
+pnpm dev      # Start dev server
+pnpm build    # Production build
+pnpm start    # Start production server
+pnpm lint     # Run ESLint
+```
