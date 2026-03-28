@@ -27,6 +27,8 @@ Use `pnpm` — not `npm` or `yarn`. There is no test script configured.
 
 ## Git
 
+This project follows **trunk-based development** — commit directly to `main`. No feature branches.
+
 After successfully completing a task, commit all changes using the [Conventional Commits](https://www.conventionalcommits.org/) specification:
 
 ```
@@ -38,3 +40,5 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ```
 
 Common types: `feat`, `fix`, `docs`, `refactor`, `chore`. Use `pnpm build` to verify the build passes before committing.
+
+Use `git tag` to bookmark milestones (e.g. `v0.3-data-analysis`) instead of long-lived branches.
