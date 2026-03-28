@@ -1,10 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Markdown from 'react-markdown'
+import Markdown, { Components } from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import ToolCallBadge from './ToolCallBadge'
 import SettingsPanel from './SettingsPanel'
+import DataView, { extractTableData } from './DataView'
 import { useFeatures } from '@/lib/features/client'
+import type { Element } from 'hast'
 
 interface ToolCall {
   name: string
@@ -24,6 +27,17 @@ type StreamEvent =
   | { type: 'tool_result'; name: string; result: string }
   | { type: 'text'; text: string }
   | { type: 'error'; message: string }
+
+// Defined outside the component to avoid re-creation on every render
+const markdownComponents: Components = {
+  table({ node }) {
+    if (!node) return null
+    const { headers, rows } = extractTableData(node as Element)
+    return <DataView headers={headers} rows={rows} />
+  },
+}
+
+const markdownComponentsNoChart: Components = {}
 
 const SUGGESTIONS = [
   { icon: '🗂️', label: 'What tables are in this database?' },
@@ -230,7 +244,14 @@ export default function Chat() {
                       {msg.text && (
                         <div className="prose prose-sm dark:prose-invert max-w-none text-zinc-800 dark:text-zinc-200">
                           {flags.markdownRendering
-                            ? <Markdown>{msg.text}</Markdown>
+                            ? (
+                              <Markdown
+                                remarkPlugins={[remarkGfm]}
+                                components={flags.chartView ? markdownComponents : markdownComponentsNoChart}
+                              >
+                                {msg.text}
+                              </Markdown>
+                            )
                             : <span className="whitespace-pre-wrap text-sm">{msg.text}</span>
                           }
                         </div>

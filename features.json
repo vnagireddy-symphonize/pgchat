@@ -2,5 +2,6 @@
   "mcpTools":          true,
   "systemPrompt":      true,
   "markdownRendering": true,
-  "suggestions":       true
+  "suggestions":       true,
+  "chartView":         true
 }

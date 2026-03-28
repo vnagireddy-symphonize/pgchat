@@ -5,10 +5,11 @@ export interface FeatureFlags {
   systemPrompt:      boolean
   markdownRendering: boolean
   suggestions:       boolean
+  chartView:         boolean
 }
 
 export type ServerFeatureKey = 'mcpTools' | 'systemPrompt'
-export type ClientFeatureKey = 'markdownRendering' | 'suggestions'
+export type ClientFeatureKey = 'markdownRendering' | 'suggestions' | 'chartView'
 
 export const featureDefaults: FeatureFlags = defaults
 

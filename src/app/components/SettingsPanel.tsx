@@ -114,6 +114,12 @@ export default function SettingsPanel({ flags, setFlag, onClose }: SettingsPanel
               checked={flags.suggestions}
               onChange={(v) => setFlag('suggestions', v)}
             />
+            <ToggleRow
+              label="Chart View"
+              description="Show bar/line chart toggle on tables"
+              checked={flags.chartView}
+              onChange={(v) => setFlag('chartView', v)}
+            />
           </section>
         </div>
 

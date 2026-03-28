@@ -9,8 +9,9 @@ A conversational data analysis interface for PostgreSQL. Ask questions in plain 
 - **Agentic tool-calling loop** — Gemini autonomously explores schema, iterates on queries, and synthesises results
 - **Live tool call visibility** — see exactly which database tools were called and what they returned
 - **Markdown responses** — answers rendered with full formatting (tables, code blocks, lists)
+- **Interactive tables and charts** — query results rendered as sortable tables with one-click bar or line chart toggle; numeric columns auto-detected
 - **MCP-native** — connects to any MCP server over stdio or HTTP; PostgreSQL support via `mcp-postgres`
-- **Feature toggles** — enable/disable MCP tools, system prompt, markdown rendering, and suggestions via a settings panel; persisted to localStorage; overridable via env vars
+- **Feature toggles** — enable/disable MCP tools, system prompt, markdown rendering, suggestions, and chart view via a settings panel; persisted to localStorage; overridable via env vars
 - **Dark mode** — full light/dark theme support
 
 ## Requirements
